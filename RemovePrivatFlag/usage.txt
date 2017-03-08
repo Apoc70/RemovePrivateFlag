@@ -1,0 +1,32 @@
+What is RemovePrivatFlags:
+
+RemovePrivatFlags.exe will remove the privat flags from all items in a mailbox.
+
+Requirements:
+- Exchange Server 2013 (Tested with CU15, maybe it will work with Exchange 2007/2010 as well)
+- Application Impersonisation rights
+
+The program can run on any client and will connect to the exchange via autodiscover. At this time there is no possibillity to specify a single server.
+
+Logging:
+Logs will be created in the folders logs\. You can change the logging in the xml file RemovePrivateFlag.exe.config. The default loglevel is INFO.
+For more log spamming change it to DEBUG. You can change also the path where the logs will be stored.
+
+Filtering:
+You can filter the search if you set -foldername. Ex: "Inbox\Testfolder" would only search under "Inbox\Testfolder" (and "Inbox\Testfolder\Example).
+"Test" will be search in all folders where the folderpath contains "Test" (So "Inbox\Test" as well as "Inbox\Testfolder" and "\Test" will be used 
+for the search):
+
+Parameters:
+not optiional: -mailbox user@domain.com
+optional: -logonly true
+optional: -foldername "Inbox"
+optional: -noconfirmation true
+
+How to run:
+RemovePrivateFlags.exe -mailbox user@domain.com [-logonly true] [-foldername "Inbox"]
+Search through the mailbox and ask for changing a item if -logonly is not set to true. If -foldername is given the folder path are compared to the folder name.
+If -logonly is set to true only a log will be created.
+
+RemovePrivateFlags.exe -mailbox user@domain.com [-foldername "Inbox"] [-noconfirmation true]
+Search through the mailbox, if -noconfirmation is set to true all items will be altered without confirmation.
