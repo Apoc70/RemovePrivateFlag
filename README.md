@@ -1,6 +1,6 @@
 ## Synopsis
 
-RemovePrivatFlags.exe will remove the privat flags from all items in a mailbox.
+RemovePrivatFlags.exe will remove the privat flags from all messages in a mailbox (appointments it self will not be altered).
 
 ## Why should I use this
 
