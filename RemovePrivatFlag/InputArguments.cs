@@ -1,6 +1,10 @@
-﻿/*
-Based on: http://dotnetfollower.com/wordpress/2012/03/c-simple-command-line-arguments-parser/
- */
+﻿// RemovePrivateFlag 
+// 
+// Author: Torsten Schlopsnies, Thomas Stensitzki
+// 
+// Based on: http://dotnetfollower.com/wordpress/2012/03/c-simple-command-line-arguments-parser/
+// 
+// Published under MIT license
 
 using System;
 using System.Collections.Generic;
