@@ -17,15 +17,15 @@ namespace RemovePrivateFlag
         {
             get
             {
-                return GetValue("mailbox");
+                return GetValue("-mailbox");
             }
         }
 
-        public bool noConfirmation
+        public bool noconfirmation
         {
             get
             {
-                return GetBoolValue("-noconfirmation");
+                return GetSwitchValue("-noconfirmation");
             }
         }
 
@@ -41,11 +41,21 @@ namespace RemovePrivateFlag
             return false;
         }
 
+        protected bool GetSwitchValue(string key)
+        {
+            string adjustedKey;
+            if (ContainsKey(key, out adjustedKey))
+            {
+                return true;
+            }
+            return false;
+        }
+
         public bool Help
         {
             get
             {
-                return GetBoolValue("-help");
+                return GetSwitchValue("-help");
             }
         }
 
@@ -61,7 +71,15 @@ namespace RemovePrivateFlag
         {
             get
             {
-                return GetBoolValue("-logonly");
+                return GetSwitchValue("-logonly");
+            }
+        }
+
+        public bool IgnoreSSLErrors
+        {
+            get
+            {
+                return GetSwitchValue("-ignoresslerrors");
             }
         }
 

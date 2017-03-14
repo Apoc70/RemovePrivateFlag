@@ -12,6 +12,7 @@
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
+using System.Net;
 
 // Configure log4net using the .config file
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -31,12 +32,38 @@ namespace RemovePrivateFlag
         public static void Main(string[] args)
         {
             log.Info("Application started");
-            log.Debug("Parsing arguments");
 
             if (args.Length > 0)
             {
                 // getting all arguments from the command line
                 var arguments = new UtilityArguments(args);
+
+                string Mailbox = arguments.Mailbox;
+
+                if ((Mailbox == null) || (Mailbox.Length == 0))
+                {
+                    if (log.IsWarnEnabled)
+                    {
+                        log.Warn("No mailbox is given. Use -help to refer to the usage.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No mailbox is given. Use -help to refer to the usage.");
+                    }
+
+                    DisplayHelp();
+                    Environment.Exit(1);
+                }
+
+                // Log all arguments if DEBUG is set in xml
+                log.Debug("Parsing arguments");
+                log.Debug("Arguments:");
+                log.Debug(string.Format("mailbox: {0}", arguments.Mailbox));
+                log.Debug(string.Format("Help: {0}", arguments.Help));
+                log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
+                log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
+                log.Debug(string.Format("foldername: {0}", arguments.Foldername));
+                log.Debug(string.Format("ignoresslerrors: {0}", arguments.IgnoreSSLErrors));
 
                 if (arguments.Help)
                 {
@@ -44,36 +71,12 @@ namespace RemovePrivateFlag
                     Environment.Exit(0);
                 }
 
-                string Mailbox = arguments.Mailbox;
-
-                if (Mailbox == null)
+                // Check if we need to ignore certificate errors
+                // need to be set before the service is created
+                if (arguments.IgnoreSSLErrors)
                 {
-                    if (log.IsWarnEnabled)
-                    {
-                        log.Warn("No mailbox is given. Use -help to refer to the usage.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No mailbox is given. Use -help to refer to the usage.");
-                    }
-
-                    DisplayHelp();
-                    Environment.Exit(1);
-                }
-
-                if (Mailbox.Length == 0)
-                {
-                    if (log.IsWarnEnabled)
-                    {
-                        log.Warn("No mailbox is given. Use -help to refer to the usage.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No mailbox is given. Use -help to refer to the usage.");
-                    }
-
-                    DisplayHelp();
-                    Environment.Exit(1);
+                    log.Warn("Ignoring SSL error because option -ignoresslerrors is set");
+                    ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 }
 
                 // create the service
@@ -146,7 +149,7 @@ namespace RemovePrivateFlag
                                 Console.WriteLine("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList.Folders[i].Id));
                                 Console.WriteLine("Subject: {0}", Result.Subject);
                             }
-                            if (!(arguments.noConfirmation))
+                            if (!(arguments.noconfirmation))
                             {
                                 if (!(arguments.LogOnly))
                                 {
@@ -193,7 +196,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly true] [-foldername \"Inbox\" [-noconfirmation true]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignoresslerrors]");
         }
 
         /// <summary>
@@ -216,11 +219,11 @@ namespace RemovePrivateFlag
                         {
                             if (log.IsInfoEnabled)
                             {
-                                log.Info(string.Format("Try to remove private flag from message: {0}", Message.Subject));
+                                log.Info(string.Format("Try to alter the message: {0}", Message.Subject));
                             }
                             else
                             {
-                                Console.WriteLine("Try to remove private flag from message: {0}", Message.Subject);
+                                Console.WriteLine("Try to alter the message: {0}", Message.Subject);
                             }
 
                             // Set the value of the extended property to 0 (which is Sensitivity normal, 2 would be private)
@@ -235,6 +238,14 @@ namespace RemovePrivateFlag
                 catch (Exception ex)
                 {
                     log.Error("Error on update the item. Error message:", ex);
+                }
+                if (log.IsInfoEnabled)
+                {
+                    log.Info("Successfully changed");
+                }
+                else
+                {
+                    Console.WriteLine("Successfully changed");
                 }
             }
         }
@@ -260,7 +271,9 @@ namespace RemovePrivateFlag
             catch (Exception ex)
             {
                 log.Error("Connection to mailbox failed", ex);
+                Environment.Exit(3);
             }
+            // We will not reach this point, so null is ok here
             return null;
         }
 
