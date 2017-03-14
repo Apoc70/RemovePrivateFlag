@@ -75,11 +75,19 @@ namespace RemovePrivateFlag
             }
         }
 
-        public bool IgnoreSSLErrors
+        public bool IgnoreCertificate
         {
             get
             {
-                return GetSwitchValue("-ignoresslerrors");
+                return GetSwitchValue("-ignorecertificate");
+            }
+        }
+
+        public string URL
+        {
+            get
+            {
+                return GetValue("-url");
             }
         }
 

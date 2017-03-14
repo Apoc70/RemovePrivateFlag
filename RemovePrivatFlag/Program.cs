@@ -62,8 +62,25 @@ namespace RemovePrivateFlag
                 log.Debug(string.Format("Help: {0}", arguments.Help));
                 log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
                 log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
-                log.Debug(string.Format("foldername: {0}", arguments.Foldername));
-                log.Debug(string.Format("ignoresslerrors: {0}", arguments.IgnoreSSLErrors));
+                if (arguments.Foldername != null)
+                {
+                    log.Debug(string.Format("foldername: {0}", arguments.Foldername));
+                }
+                else
+                {
+                    log.Debug("foldername: not specified");
+                }
+                
+                log.Debug(string.Format("ignorecertificate: {0}", arguments.IgnoreCertificate));
+                if (arguments.URL != null)
+                {
+                    log.Debug(string.Format("server URL: {0}", arguments.URL));
+                }
+                else
+                {
+                    log.Debug("server URL: using autodiscover");
+                }
+                
 
                 if (arguments.Help)
                 {
@@ -73,14 +90,23 @@ namespace RemovePrivateFlag
 
                 // Check if we need to ignore certificate errors
                 // need to be set before the service is created
-                if (arguments.IgnoreSSLErrors)
+                if (arguments.IgnoreCertificate)
                 {
-                    log.Warn("Ignoring SSL error because option -ignoresslerrors is set");
+                    log.Warn("Ignoring SSL error because option -ignorecertificate is set");
                     ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 }
 
                 // create the service
-                ExchangeService ExService = ConnectToExchange(Mailbox);
+                ExchangeService ExService;
+                // connect to the server
+                if (arguments.URL != null)
+                {
+                    ExService = ConnectToExchange(Mailbox, arguments.URL);
+                }
+                else
+                {
+                    ExService = ConnectToExchange(Mailbox);
+                }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
 
@@ -196,7 +222,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignoresslerrors]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate]");
         }
 
         /// <summary>
@@ -264,6 +290,33 @@ namespace RemovePrivateFlag
 
                 service.UseDefaultCredentials = true;
                 service.AutodiscoverUrl(MailboxID);
+                service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+
+                return service;
+            }
+            catch (Exception ex)
+            {
+                log.Error("Connection to mailbox failed", ex);
+                Environment.Exit(3);
+            }
+            // We will not reach this point, so null is ok here
+            return null;
+        }
+
+        /// <summary>
+        /// Connect to Exchange using AutoDiscover for the given email address
+        /// </summary>
+        /// <param name="MailboxID">The users email address</param>
+        /// <returns>Exchange Web Service binding</returns>
+        public static ExchangeService ConnectToExchange(string MailboxID,string URL)
+        {
+            log.Info(string.Format("Connect to mailbox {0}", MailboxID));
+            try
+            {
+                var service = new ExchangeService();
+
+                service.UseDefaultCredentials = true;
+                service.Url = new Uri(URL);
                 service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
 
                 return service;
@@ -351,6 +404,7 @@ namespace RemovePrivateFlag
                 {
                     log.Error("Failed to fetch folders.", ex);
                     moreItems = false;
+                    Environment.Exit(3);
                 }
             }
             return findFolders;
@@ -388,9 +442,9 @@ namespace RemovePrivateFlag
                 {
                     log.Error("Failed to fetch items.", ex);
                     moreItems = false;
+                    Environment.Exit(3);
                 }
             }
-
             return findResults;
         }
     }
