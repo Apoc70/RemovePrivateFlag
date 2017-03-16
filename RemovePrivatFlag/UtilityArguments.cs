@@ -115,11 +115,11 @@ namespace RemovePrivateFlag
             }
         }
 
-        public bool Impersonisate
+        public bool impersonate
         {
             get
             {
-                return GetSwitchValue("-impersonisate");
+                return GetSwitchValue("-impersonate");
             }
         }
 

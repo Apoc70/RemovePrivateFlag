@@ -68,7 +68,7 @@ namespace RemovePrivateFlag
                 log.Debug(string.Format("Help: {0}", arguments.Help));
                 log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
                 log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
-                log.Debug(string.Format("impersonisation: {0}", arguments.Impersonisate));
+                log.Debug(string.Format("impersonate: {0}", arguments.impersonate));
                 log.Debug(string.Format("allowredirection: {0}", arguments.AllowRedirection));
                 if (arguments.Foldername != null)
                 {
@@ -112,11 +112,11 @@ namespace RemovePrivateFlag
                 // connect to the server
                 if (arguments.URL != null)
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.Impersonisate);
+                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.impersonate);
                 }
                 else
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.Impersonisate);
+                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.impersonate);
                 }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
@@ -233,7 +233,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonisate]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonate]");
         }
 
         /// <summary>
