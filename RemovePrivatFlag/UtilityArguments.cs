@@ -91,6 +91,38 @@ namespace RemovePrivateFlag
             }
         }
 
+        public bool AllowRedirection
+        {
+            get
+            {
+                return GetSwitchValue("-allowredirection");
+            }
+        }
+
+        public string User
+        {
+            get
+            {
+                return GetValue("-user");
+            }
+        }
+
+        public string Password
+        {
+            get
+            {
+                return GetValue("-password");
+            }
+        }
+
+        public bool Impersonisate
+        {
+            get
+            {
+                return GetSwitchValue("-impersonisate");
+            }
+        }
+
         public UtilityArguments(string[] args) : base(args)
         {
         }

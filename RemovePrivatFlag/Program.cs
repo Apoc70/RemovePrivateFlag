@@ -31,12 +31,18 @@ namespace RemovePrivateFlag
         /// <param name="args">String array containing program arguments</param>
         public static void Main(string[] args)
         {
-            log.Info("Application started");
-
             if (args.Length > 0)
             {
                 // getting all arguments from the command line
                 var arguments = new UtilityArguments(args);
+
+                if (arguments.Help)
+                {
+                    DisplayHelp();
+                    Environment.Exit(0);
+                }
+
+                log.Info("Application started");
 
                 string Mailbox = arguments.Mailbox;
 
@@ -62,6 +68,8 @@ namespace RemovePrivateFlag
                 log.Debug(string.Format("Help: {0}", arguments.Help));
                 log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
                 log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
+                log.Debug(string.Format("impersonisation: {0}", arguments.Impersonisate));
+                log.Debug(string.Format("allowredirection: {0}", arguments.AllowRedirection));
                 if (arguments.Foldername != null)
                 {
                     log.Debug(string.Format("foldername: {0}", arguments.Foldername));
@@ -69,6 +77,16 @@ namespace RemovePrivateFlag
                 else
                 {
                     log.Debug("foldername: not specified");
+                }
+
+                if (arguments.User != null)
+                {
+                    log.Debug(string.Format("User: {0}", arguments.User));
+                }
+                
+                if (arguments.Password != null)
+                {
+                    log.Debug("Password: is set");
                 }
                 
                 log.Debug(string.Format("ignorecertificate: {0}", arguments.IgnoreCertificate));
@@ -81,13 +99,6 @@ namespace RemovePrivateFlag
                     log.Debug("server URL: using autodiscover");
                 }
                 
-
-                if (arguments.Help)
-                {
-                    DisplayHelp();
-                    Environment.Exit(0);
-                }
-
                 // Check if we need to ignore certificate errors
                 // need to be set before the service is created
                 if (arguments.IgnoreCertificate)
@@ -101,11 +112,11 @@ namespace RemovePrivateFlag
                 // connect to the server
                 if (arguments.URL != null)
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.URL);
+                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.Impersonisate);
                 }
                 else
                 {
-                    ExService = ConnectToExchange(Mailbox);
+                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.Impersonisate);
                 }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
@@ -222,7 +233,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonisate]");
         }
 
         /// <summary>
@@ -281,17 +292,34 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxID">The users email address</param>
         /// <returns>Exchange Web Service binding</returns>
-        public static ExchangeService ConnectToExchange(string MailboxID)
+        public static ExchangeService ConnectToExchange(string MailboxID, bool allowredirection, string User, string Password, bool Impersonisation)
         {
             log.Info(string.Format("Connect to mailbox {0}", MailboxID));
             try
             {
                 var service = new ExchangeService();
 
-                service.UseDefaultCredentials = true;
-                service.AutodiscoverUrl(MailboxID);
-                service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
-
+                if ((User == null) | (Password == null))
+                {
+                    service.UseDefaultCredentials = true;
+                }
+                else
+                {
+                    service.Credentials = new WebCredentials(User, Password);
+                }
+                
+                if (allowredirection)
+                {
+                    service.AutodiscoverUrl(MailboxID,RedirectionCallback);
+                }
+                else
+                {
+                    service.AutodiscoverUrl(MailboxID);
+                }
+                if (Impersonisation)
+                {
+                    service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                }
                 return service;
             }
             catch (Exception ex)
@@ -308,16 +336,26 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxID">The users email address</param>
         /// <returns>Exchange Web Service binding</returns>
-        public static ExchangeService ConnectToExchange(string MailboxID,string URL)
+        public static ExchangeService ConnectToExchange(string MailboxID,string URL, string User, string Password, bool Impersonisation)
         {
             log.Info(string.Format("Connect to mailbox {0}", MailboxID));
             try
             {
                 var service = new ExchangeService();
 
-                service.UseDefaultCredentials = true;
+                if ((User == null) | (Password == null))
+                {
+                    service.UseDefaultCredentials = true;
+                }
+                else
+                {
+                    service.Credentials = new WebCredentials(User, Password);
+                }
                 service.Url = new Uri(URL);
-                service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                if (Impersonisation)
+                {
+                    service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                }
 
                 return service;
             }
@@ -446,6 +484,13 @@ namespace RemovePrivateFlag
                 }
             }
             return findResults;
+        }
+
+        // Redirection Handler if -allowredirect is set
+        public static bool RedirectionCallback(string url)
+        {
+            // Return true if the URL is an HTTPS URL.
+            return url.ToLower().StartsWith("https://");
         }
     }
 }
