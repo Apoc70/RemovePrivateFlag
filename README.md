@@ -36,40 +36,40 @@ Search through the mailbox, if -noconfirmation is set to true all items will be 
 # Parameters
 * mandatory: -mailbox user@domain.com
 
-...Mailbox which you want to alter.
+Mailbox which you want to alter.
 
 * optional: -logonly 
 
-...Items will only be logged.
+Items will only be logged.
 
 * optional: -foldername "Inbox"
 
-...Will filter the items to the Folderpath
+Will filter the items to the Folderpath
 
 * optional: -noconfirmation
 
-...Messages will be set to normal without confirmation.
+Messages will be set to normal without confirmation.
 
 * optional: -ignorecertificate
 
-...Ignore certificate errors. Interesting if you connect to a lab config with self signed certificate.
+Ignore certificate errors. Interesting if you connect to a lab config with self signed certificate.
 
 * optional: -impersonate
 
-...If you want to alter a other mailbox than yours set this parameter.
+If you want to alter a other mailbox than yours set this parameter.
 
 * optional: -user user@domain.com
 
-...If set together with -password this credentials would be used. Elsewhere the credentials from your session will be used.
+If set together with -password this credentials would be used. Elsewhere the credentials from your session will be used.
 
 * optional: -password "Pa$$w0rd"
 * optional: -url "https://server/EWS/Exchange.asmx"
 
-...If you set an specific URL this URL will be used instead of autodiscover. Should be used with -ignorecertificate if your CN is not in the certficate.
+If you set an specific URL this URL will be used instead of autodiscover. Should be used with -ignorecertificate if your CN is not in the certficate.
 
 * optional: -allowredirection
 
-...If your autodiscover redirects you the default behaviour is to quit the connection. With this parameter you will be connected anyhow (Hint: O365)
+If your autodiscover redirects you the default behaviour is to quit the connection. With this parameter you will be connected anyhow (Hint: O365)
 
 
 
