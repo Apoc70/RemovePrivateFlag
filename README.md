@@ -1,6 +1,6 @@
 ## Synopsis
 
-RemovePrivatFlags.exe will remove the private flags from all messages in an Exchange Server mailbox (appointments will not be altered).
+RemovePrivateFlags.exe will remove the private flags from all messages in an Exchange Server mailbox (appointments will not be altered).
 
 ## Why should I use this
 
