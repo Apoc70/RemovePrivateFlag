@@ -20,7 +20,7 @@ Simply copy all files to a location where you are allowed to run it and of cours
 
 ## Usage
 ```
-RemovePrivateFlags.exe -mailbox user@domain.com [-logonly true] [-foldername "Inbox"]
+RemovePrivateFlags.exe -mailbox user@domain.com [-logonly] [-foldername "Inbox"]
 ```
 
 Search through the mailbox and ask for changing a item if -logonly is not set to true. If -foldername is given the folder path are compared to the folder name.
@@ -28,7 +28,7 @@ If -logonly is set to true only a log will be created.
 
 
 ```
-RemovePrivateFlags.exe -mailbox user@domain.com [-foldername "Inbox"] [-noconfirmation true]
+RemovePrivateFlags.exe -mailbox user@domain.com [-foldername "Inbox"] [-noconfirmation]
 ```
 
 Search through the mailbox, if -noconfirmation is set to true all items will be altered without confirmation.
