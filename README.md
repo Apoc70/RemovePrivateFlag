@@ -15,7 +15,7 @@ Simply copy all files to a location where you are allowed to run it and of cours
 
 ## Requirements
 * Exchange Server 2013/2016 (Tested with CU15, maybe it will work with Exchange 2007/2010 as well)
-* Application Impersonation Rights
+* Application Impersonation Rights if you want to change items on other mailboxes than yours
 * Microsoft.Exchange.WebServices.dll, log4net.dll (are provided in the repository and also in the binaries)
 
 ## Usage
@@ -35,9 +35,42 @@ Search through the mailbox, if -noconfirmation is set to true all items will be 
 
 # Parameters
 * mandatory: -mailbox user@domain.com
-* optional: -logonly true
+
+Mailbox which you want to alter.
+
+* optional: -logonly 
+
+Items will only be logged.
+
 * optional: -foldername "Inbox"
-* optional: -noconfirmation true
+
+Will filter the items to the Folderpath
+
+* optional: -noconfirmation
+
+Messages will be set to normal without confirmation.
+
+* optional: -ignorecertificate
+
+Ignore certificate errors. Interesting if you connect to a lab config with self signed certificate.
+
+* optional: -impersonate
+
+If you want to alter a other mailbox than yours set this parameter.
+
+* optional: -user user@domain.com
+
+If set together with -password this credentials would be used. Elsewhere the credentials from your session will be used.
+
+* optional: -password "Pa$$w0rd"
+* optional: -url "https://server/EWS/Exchange.asmx"
+
+If you set an specific URL this URL will be used instead of autodiscover. Should be used with -ignorecertificate if your CN is not in the certficate.
+
+* optional: -allowredirection
+
+If your autodiscover redirects you the default behaviour is to quit the connection. With this parameter you will be connected anyhow (Hint: O365)
+
 
 
 ## License

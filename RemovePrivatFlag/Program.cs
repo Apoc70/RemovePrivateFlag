@@ -8,10 +8,11 @@
 //
 // Find more Exchange community scripts at: http://scripts.granikos.eu
 //
-// Version 1.0.0.0 | Published 2017-03-09
+// Version 1.1.0.0 | Published 2017-03-09
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
+using System.Net;
 
 // Configure log4net using the .config file
 [assembly: log4net.Config.XmlConfigurator(Watch = true)]
@@ -30,9 +31,6 @@ namespace RemovePrivateFlag
         /// <param name="args">String array containing program arguments</param>
         public static void Main(string[] args)
         {
-            log.Info("Application started");
-            log.Debug("Parsing arguments");
-
             if (args.Length > 0)
             {
                 // getting all arguments from the command line
@@ -44,9 +42,11 @@ namespace RemovePrivateFlag
                     Environment.Exit(0);
                 }
 
+                log.Info("Application started");
+
                 string Mailbox = arguments.Mailbox;
 
-                if (Mailbox == null)
+                if ((Mailbox == null) || (Mailbox.Length == 0))
                 {
                     if (log.IsWarnEnabled)
                     {
@@ -61,23 +61,63 @@ namespace RemovePrivateFlag
                     Environment.Exit(1);
                 }
 
-                if (Mailbox.Length == 0)
+                // Log all arguments if DEBUG is set in xml
+                log.Debug("Parsing arguments");
+                log.Debug("Arguments:");
+                log.Debug(string.Format("mailbox: {0}", arguments.Mailbox));
+                log.Debug(string.Format("Help: {0}", arguments.Help));
+                log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
+                log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
+                log.Debug(string.Format("impersonate: {0}", arguments.impersonate));
+                log.Debug(string.Format("allowredirection: {0}", arguments.AllowRedirection));
+                if (arguments.Foldername != null)
                 {
-                    if (log.IsWarnEnabled)
-                    {
-                        log.Warn("No mailbox is given. Use -help to refer to the usage.");
-                    }
-                    else
-                    {
-                        Console.WriteLine("No mailbox is given. Use -help to refer to the usage.");
-                    }
+                    log.Debug(string.Format("foldername: {0}", arguments.Foldername));
+                }
+                else
+                {
+                    log.Debug("foldername: not specified");
+                }
 
-                    DisplayHelp();
-                    Environment.Exit(1);
+                if (arguments.User != null)
+                {
+                    log.Debug(string.Format("User: {0}", arguments.User));
+                }
+                
+                if (arguments.Password != null)
+                {
+                    log.Debug("Password: is set");
+                }
+                
+                log.Debug(string.Format("ignorecertificate: {0}", arguments.IgnoreCertificate));
+                if (arguments.URL != null)
+                {
+                    log.Debug(string.Format("server URL: {0}", arguments.URL));
+                }
+                else
+                {
+                    log.Debug("server URL: using autodiscover");
+                }
+                
+                // Check if we need to ignore certificate errors
+                // need to be set before the service is created
+                if (arguments.IgnoreCertificate)
+                {
+                    log.Warn("Ignoring SSL error because option -ignorecertificate is set");
+                    ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 }
 
                 // create the service
-                ExchangeService ExService = ConnectToExchange(Mailbox);
+                ExchangeService ExService;
+                // connect to the server
+                if (arguments.URL != null)
+                {
+                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.impersonate);
+                }
+                else
+                {
+                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.impersonate);
+                }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
 
@@ -146,7 +186,7 @@ namespace RemovePrivateFlag
                                 Console.WriteLine("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList.Folders[i].Id));
                                 Console.WriteLine("Subject: {0}", Result.Subject);
                             }
-                            if (!(arguments.noConfirmation))
+                            if (!(arguments.noconfirmation))
                             {
                                 if (!(arguments.LogOnly))
                                 {
@@ -193,7 +233,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly true] [-foldername \"Inbox\" [-noconfirmation true]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonate]");
         }
 
         /// <summary>
@@ -216,11 +256,11 @@ namespace RemovePrivateFlag
                         {
                             if (log.IsInfoEnabled)
                             {
-                                log.Info(string.Format("Try to remove private flag from message: {0}", Message.Subject));
+                                log.Info(string.Format("Try to alter the message: {0}", Message.Subject));
                             }
                             else
                             {
-                                Console.WriteLine("Try to remove private flag from message: {0}", Message.Subject);
+                                Console.WriteLine("Try to alter the message: {0}", Message.Subject);
                             }
 
                             // Set the value of the extended property to 0 (which is Sensitivity normal, 2 would be private)
@@ -236,6 +276,14 @@ namespace RemovePrivateFlag
                 {
                     log.Error("Error on update the item. Error message:", ex);
                 }
+                if (log.IsInfoEnabled)
+                {
+                    log.Info("Successfully changed");
+                }
+                else
+                {
+                    Console.WriteLine("Successfully changed");
+                }
             }
         }
 
@@ -244,23 +292,79 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxID">The users email address</param>
         /// <returns>Exchange Web Service binding</returns>
-        public static ExchangeService ConnectToExchange(string MailboxID)
+        public static ExchangeService ConnectToExchange(string MailboxID, bool allowredirection, string User, string Password, bool Impersonisation)
         {
             log.Info(string.Format("Connect to mailbox {0}", MailboxID));
             try
             {
                 var service = new ExchangeService();
 
-                service.UseDefaultCredentials = true;
-                service.AutodiscoverUrl(MailboxID);
-                service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                if ((User == null) | (Password == null))
+                {
+                    service.UseDefaultCredentials = true;
+                }
+                else
+                {
+                    service.Credentials = new WebCredentials(User, Password);
+                }
+                
+                if (allowredirection)
+                {
+                    service.AutodiscoverUrl(MailboxID,RedirectionCallback);
+                }
+                else
+                {
+                    service.AutodiscoverUrl(MailboxID);
+                }
+                if (Impersonisation)
+                {
+                    service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                }
+                return service;
+            }
+            catch (Exception ex)
+            {
+                log.Error("Connection to mailbox failed", ex);
+                Environment.Exit(3);
+            }
+            // We will not reach this point, so null is ok here
+            return null;
+        }
+
+        /// <summary>
+        /// Connect to Exchange using AutoDiscover for the given email address
+        /// </summary>
+        /// <param name="MailboxID">The users email address</param>
+        /// <returns>Exchange Web Service binding</returns>
+        public static ExchangeService ConnectToExchange(string MailboxID,string URL, string User, string Password, bool Impersonisation)
+        {
+            log.Info(string.Format("Connect to mailbox {0}", MailboxID));
+            try
+            {
+                var service = new ExchangeService();
+
+                if ((User == null) | (Password == null))
+                {
+                    service.UseDefaultCredentials = true;
+                }
+                else
+                {
+                    service.Credentials = new WebCredentials(User, Password);
+                }
+                service.Url = new Uri(URL);
+                if (Impersonisation)
+                {
+                    service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
+                }
 
                 return service;
             }
             catch (Exception ex)
             {
                 log.Error("Connection to mailbox failed", ex);
+                Environment.Exit(3);
             }
+            // We will not reach this point, so null is ok here
             return null;
         }
 
@@ -338,6 +442,7 @@ namespace RemovePrivateFlag
                 {
                     log.Error("Failed to fetch folders.", ex);
                     moreItems = false;
+                    Environment.Exit(3);
                 }
             }
             return findFolders;
@@ -375,10 +480,17 @@ namespace RemovePrivateFlag
                 {
                     log.Error("Failed to fetch items.", ex);
                     moreItems = false;
+                    Environment.Exit(3);
                 }
             }
-
             return findResults;
+        }
+
+        // Redirection Handler if -allowredirect is set
+        public static bool RedirectionCallback(string url)
+        {
+            // Return true if the URL is an HTTPS URL.
+            return url.ToLower().StartsWith("https://");
         }
     }
 }
