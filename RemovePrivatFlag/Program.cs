@@ -8,7 +8,7 @@
 //
 // Find more Exchange community scripts at: http://scripts.granikos.eu
 //
-// Version 1.1.0.0 | Published 2017-03-09
+// Version 1.1.1.0 | Published 2017-03-20
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
