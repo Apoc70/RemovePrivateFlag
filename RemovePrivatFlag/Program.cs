@@ -128,7 +128,7 @@ namespace RemovePrivateFlag
                 // check if we need to remove items from the list because we want to filter it (folderpath)
                 string FolderName = arguments.Foldername;
 
-                if (log.IsDebugEnabled) log.Debug(string.Format("Folders with minimum one item inside: {0}", FolderList.Count));
+                if (log.IsInfoEnabled) log.Info(string.Format("Folders with minimum one item inside: {0}", FolderList.Count));
                 if (FolderName != null)
                 {
                     if (FolderName.Length > 0)
@@ -173,7 +173,7 @@ namespace RemovePrivateFlag
 
                     List<Item> Results = PrivateItems(FolderList[i]);
 
-                    if (log.IsDebugEnabled) log.Debug(string.Format("Private items in folder: {0}", Results.Count));
+                    if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
 
                     foreach (var Result in Results)
                     {
