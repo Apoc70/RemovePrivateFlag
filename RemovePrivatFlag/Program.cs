@@ -173,7 +173,10 @@ namespace RemovePrivateFlag
 
                     List<Item> Results = PrivateItems(FolderList[i]);
 
-                    if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
+                    if (Results.Count > 0)
+                    {
+                        if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
+                    }
 
                     foreach (var Result in Results)
                     {
