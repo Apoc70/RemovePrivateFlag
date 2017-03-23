@@ -138,21 +138,15 @@ namespace RemovePrivateFlag
 
                         for (int i = FolderList.Count - 1; i >= 0; i--) // yes, we need to it this way...
                         {
-                            if (log.IsDebugEnabled)
-                                log.Debug(string.Format("Processing folder for filtering: {0}", FolderList[i].DisplayName));
-
                             try
                             {
                                 string FolderPath;
 
                                 FolderPath = GetFolderPath(ExService, FolderList[i].Id);
 
-                                if (log.IsDebugEnabled)
-                                    log.Debug(string.Format("Folderpath is: {0}", FolderPath));
-
                                 if (!(FolderPath.Contains(FolderName)))
                                 {
-                                    log.Debug(string.Format("The folder: {0} does not match with the filter: {1}", FolderPath, FolderName));
+                                    log.Debug(string.Format("The folder: \"{0}\" does not match with the filter: \"{1}\"", FolderPath, FolderName));
                                     FolderList.RemoveAt(i);
                                 }
                             }
@@ -167,13 +161,16 @@ namespace RemovePrivateFlag
                 // now try to find all items that are marked as "private"
                 for (int i = FolderList.Count - 1; i >= 0; i--)
                 {
-                    if (log.IsDebugEnabled) log.Debug(string.Format("Processing folder {0}", GetFolderPath(ExService, FolderList[i].Id)));
+                    if (log.IsDebugEnabled) log.Debug(string.Format("Processing folder \"{0}\"", GetFolderPath(ExService, FolderList[i].Id)));
 
                     if (log.IsDebugEnabled) log.Debug(string.Format("ID: {0}", FolderList[i].Id));
 
                     List<Item> Results = PrivateItems(FolderList[i]);
 
-                    if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
+                    if (Results.Count > 0)
+                    {
+                        if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
+                    }
 
                     foreach (var Result in Results)
                     {
@@ -181,9 +178,10 @@ namespace RemovePrivateFlag
                         {
                             if (log.IsInfoEnabled)
                             {
-                                log.Info(string.Format("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList[i].Id)));
-                                log.Info(string.Format("Subject: {0}", Result.Subject));
-                                log.Debug(string.Format("ID of the item: {0}", Result.Id));
+                                if (log.IsInfoEnabled) log.Info(string.Format("Found private element. Folder: \"{0}\" ", GetFolderPath(ExService, FolderList[i].Id)));
+                                if (log.IsInfoEnabled) log.Info(string.Format("Subject: \"{0}\"", Result.Subject));
+                                if (log.IsDebugEnabled) log.Debug(string.Format("ID of the item: {0}", Result.Id));
+
                             }
                             else
                             {
@@ -216,7 +214,6 @@ namespace RemovePrivateFlag
                                     {
                                         Console.WriteLine("Changing item without confirmation because -noconfirmation is true.");
                                     }
-
                                     ChangeItem(Result);
                                 }
                             }
