@@ -8,10 +8,11 @@
 //
 // Find more Exchange community scripts at: http://scripts.granikos.eu
 //
-// Version 1.1.0.0 | Published 2017-03-09
+// Version 1.1.1.0 | Published 2017-03-20
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 // Configure log4net using the .config file
@@ -122,11 +123,12 @@ namespace RemovePrivateFlag
                 if (log.IsInfoEnabled) log.Info("Service created.");
 
                 // find all folders (under MsgFolderRoot)
-                FindFoldersResults FolderList = Folders(ExService);
+                List<Folder> FolderList = Folders(ExService);
 
                 // check if we need to remove items from the list because we want to filter it (folderpath)
                 string FolderName = arguments.Foldername;
 
+                if (log.IsInfoEnabled) log.Info(string.Format("Folders with minimum one item inside: {0}", FolderList.Count));
                 if (FolderName != null)
                 {
                     if (FolderName.Length > 0)
@@ -134,16 +136,16 @@ namespace RemovePrivateFlag
                         if (log.IsInfoEnabled)
                             log.Info("Filter the folder list to apply filter.");
 
-                        for (int i = FolderList.Folders.Count - 1; i >= 0; i--) // yes, we need to it this way...
+                        for (int i = FolderList.Count - 1; i >= 0; i--) // yes, we need to it this way...
                         {
                             if (log.IsDebugEnabled)
-                                log.Debug(string.Format("Processing folder for filtering: {0}", FolderList.Folders[i].DisplayName));
+                                log.Debug(string.Format("Processing folder for filtering: {0}", FolderList[i].DisplayName));
 
                             try
                             {
                                 string FolderPath;
 
-                                FolderPath = GetFolderPath(ExService, FolderList.Folders[i].Id);
+                                FolderPath = GetFolderPath(ExService, FolderList[i].Id);
 
                                 if (log.IsDebugEnabled)
                                     log.Debug(string.Format("Folderpath is: {0}", FolderPath));
@@ -151,7 +153,7 @@ namespace RemovePrivateFlag
                                 if (!(FolderPath.Contains(FolderName)))
                                 {
                                     log.Debug(string.Format("The folder: {0} does not match with the filter: {1}", FolderPath, FolderName));
-                                    FolderList.Folders.RemoveAt(i);
+                                    FolderList.RemoveAt(i);
                                 }
                             }
                             catch
@@ -163,13 +165,15 @@ namespace RemovePrivateFlag
                 }
 
                 // now try to find all items that are marked as "private"
-                for (int i = FolderList.Folders.Count - 1; i >= 0; i--)
+                for (int i = FolderList.Count - 1; i >= 0; i--)
                 {
-                    if (log.IsInfoEnabled) log.Info(string.Format("Processing folder {0}", GetFolderPath(ExService, FolderList.Folders[i].Id)));
+                    if (log.IsDebugEnabled) log.Debug(string.Format("Processing folder {0}", GetFolderPath(ExService, FolderList[i].Id)));
 
-                    if (log.IsDebugEnabled) log.Debug(string.Format("ID: {0}", FolderList.Folders[i].Id));
+                    if (log.IsDebugEnabled) log.Debug(string.Format("ID: {0}", FolderList[i].Id));
 
-                    FindItemsResults<Item> Results = PrivateItems(FolderList.Folders[i]);
+                    List<Item> Results = PrivateItems(FolderList[i]);
+
+                    if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
 
                     foreach (var Result in Results)
                     {
@@ -177,20 +181,20 @@ namespace RemovePrivateFlag
                         {
                             if (log.IsInfoEnabled)
                             {
-                                log.Info(string.Format("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList.Folders[i].Id)));
+                                log.Info(string.Format("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList[i].Id)));
                                 log.Info(string.Format("Subject: {0}", Result.Subject));
                                 log.Debug(string.Format("ID of the item: {0}", Result.Id));
                             }
                             else
                             {
-                                Console.WriteLine("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList.Folders[i].Id));
+                                Console.WriteLine("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList[i].Id));
                                 Console.WriteLine("Subject: {0}", Result.Subject);
                             }
                             if (!(arguments.noconfirmation))
                             {
                                 if (!(arguments.LogOnly))
                                 {
-                                    Console.WriteLine(string.Format("Change to normal? (Y/N) (Folder: {0} - Subject {1})", GetFolderPath(ExService, FolderList.Folders[i].Id), Result.Subject));
+                                    Console.WriteLine(string.Format("Change to normal? (Y/N) (Folder: {0} - Subject {1})", GetFolderPath(ExService, FolderList[i].Id), Result.Subject));
                                     string Question = Console.ReadLine();
 
                                     if (Question == "y" || Question == "Y")
@@ -413,13 +417,14 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="service"></param>
         /// <returns>Result of a folder search operation</returns>
-        public static FindFoldersResults Folders(ExchangeService service)
+        public static List<Folder> Folders(ExchangeService service)
         {
             // try to find all folder that are unter MsgRootFolder
             int pageSize = 100;
             int pageOffset = 0;
             bool moreItems = true;
             var view = new FolderView(pageSize, pageOffset);
+            var resultFolders = new List<Folder>();
 
             view.PropertySet = new PropertySet(BasePropertySet.IdOnly);
             view.PropertySet.Add(FolderSchema.DisplayName);
@@ -435,6 +440,10 @@ namespace RemovePrivateFlag
                     findFolders = service.FindFolders(WellKnownFolderName.MsgFolderRoot, searchFilter, view);
                     moreItems = findFolders.MoreAvailable;
 
+                    foreach (var folder in findFolders)
+                    {
+                        resultFolders.Add(folder);
+                    }
                     // if more folders than the offset is aviable we need to page
                     if (moreItems) view.Offset += pageSize;
                 }
@@ -445,7 +454,7 @@ namespace RemovePrivateFlag
                     Environment.Exit(3);
                 }
             }
-            return findFolders;
+            return resultFolders;
         }
 
         /// <summary>
@@ -453,11 +462,12 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxFolder">The mailbox folder to search</param>
         /// <returns>Items of an item search operation</returns>
-        public static FindItemsResults<Item> PrivateItems(Folder MailboxFolder)
+        public static List<Item> PrivateItems(Folder MailboxFolder)
         {
             int pageSize = 100;
             int pageOffset = 0;
             bool moreItems = true;
+            var resultItems = new List<Item>();
 
             var extendedPropertyDefinition = new ExtendedPropertyDefinition(0x36, MapiPropertyType.Integer);
             SearchFilter searchFilter = new SearchFilter.IsEqualTo(ItemSchema.Sensitivity, "Private");
@@ -473,6 +483,11 @@ namespace RemovePrivateFlag
                     findResults = MailboxFolder.FindItems(searchFilter, view);
                     moreItems = findResults.MoreAvailable;
 
+                    foreach (var Found in findResults)
+                    {
+                        resultItems.Add(Found);
+                    }
+
                     // if more folders than the offset is aviable we need to page
                     if (moreItems) view.Offset += pageSize;
                 }
@@ -483,7 +498,7 @@ namespace RemovePrivateFlag
                     Environment.Exit(3);
                 }
             }
-            return findResults;
+            return resultItems;
         }
 
         // Redirection Handler if -allowredirect is set
