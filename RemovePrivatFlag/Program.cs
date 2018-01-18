@@ -8,7 +8,7 @@
 //
 // Find more Exchange community scripts at: http://scripts.granikos.eu
 //
-// Version 1.1.1.0 | Published 2017-03-20
+// Version 1.1.2.0 | Published 2018-01-18
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
@@ -46,6 +46,8 @@ namespace RemovePrivateFlag
                 log.Info("Application started");
 
                 string Mailbox = arguments.Mailbox;
+                string User = arguments.User;
+                string Password = arguments.Password;
 
                 if ((Mailbox == null) || (Mailbox.Length == 0))
                 {
@@ -80,14 +82,38 @@ namespace RemovePrivateFlag
                     log.Debug("foldername: not specified");
                 }
 
-                if (arguments.User != null)
+                if (User != null)
                 {
                     log.Debug(string.Format("User: {0}", arguments.User));
                 }
-                
-                if (arguments.Password != null)
+                else
+                {
+                    log.Debug(string.Format("No user is giving. Asking for user."));
+                    Console.Write("Please enter a user name: ");
+                    User = Console.ReadLine();
+                    if (User == "")
+                    {
+                        log.Debug(string.Format("No user name entered. Exit application."));
+                        DisplayHelp();
+                        Environment.Exit(1);
+                    }
+                }
+
+                if (Password != null)
                 {
                     log.Debug("Password: is set");
+                }
+                else
+                {
+                    log.Debug(string.Format("No password is giving. Asking for password."));
+                    Console.Write("Please enter the password: ");
+                    Password = ReadPassword();
+                    if (Password == "")
+                    {
+                        log.Debug(string.Format("No password entered. Exit application."));
+                        DisplayHelp();
+                        Environment.Exit(1);
+                    }
                 }
                 
                 log.Debug(string.Format("ignorecertificate: {0}", arguments.IgnoreCertificate));
@@ -113,11 +139,11 @@ namespace RemovePrivateFlag
                 // connect to the server
                 if (arguments.URL != null)
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.impersonate);
+                    ExService = ConnectToExchange(Mailbox, arguments.URL, User, Password, arguments.impersonate);
                 }
                 else
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.impersonate);
+                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, User, Password, arguments.impersonate);
                 }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
@@ -127,6 +153,8 @@ namespace RemovePrivateFlag
 
                 // check if we need to remove items from the list because we want to filter it (folderpath)
                 string FolderName = arguments.Foldername;
+
+                int TotalFoundItems = 0;
 
                 if (log.IsInfoEnabled) log.Info(string.Format("Folders with minimum one item inside: {0}", FolderList.Count));
                 if (FolderName != null)
@@ -156,8 +184,9 @@ namespace RemovePrivateFlag
                                     FolderList.RemoveAt(i);
                                 }
                             }
-                            catch
+                            catch (Exception ex)
                             {
+                                log.Error("Error on getting folder. Message: ", ex);
                                 Environment.Exit(2);
                             }
                         }
@@ -173,15 +202,18 @@ namespace RemovePrivateFlag
 
                     List<Item> Results = PrivateItems(FolderList[i]);
 
-                    if (log.IsInfoEnabled) log.Info(string.Format("Private items in folder: {0}", Results.Count));
+                    if (Results.Count > 0)
+                    {
+                        if (log.IsInfoEnabled) log.Info(string.Format("Private items in the folder {0}: {1}", GetFolderPath(ExService, FolderList[i].Id), Results.Count));
+                    }
 
                     foreach (var Result in Results)
                     {
                         if (Result is EmailMessage)
                         {
+                            ++TotalFoundItems;
                             if (log.IsInfoEnabled)
                             {
-                                log.Info(string.Format("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList[i].Id)));
                                 log.Info(string.Format("Subject: {0}", Result.Subject));
                                 log.Debug(string.Format("ID of the item: {0}", Result.Id));
                             }
@@ -221,14 +253,54 @@ namespace RemovePrivateFlag
                                 }
                             }
                         }
-                    }
+                    } 
                 }
+                if (log.IsInfoEnabled) log.Info(string.Format("Total private items found: {0}", TotalFoundItems));
             }
             else
             {
                 DisplayHelp();
                 Environment.Exit(1);
             }
+        }
+
+        /// <summary>
+        /// Read the password from the console.
+        /// </summary>
+        /// <returns>string</returns>
+        public static string ReadPassword()
+        {
+            string password = "";
+            ConsoleKeyInfo info = Console.ReadKey(true);
+            while (info.Key != ConsoleKey.Enter)
+            {
+                if (info.Key != ConsoleKey.Backspace)
+                {
+                    Console.Write("*");
+                    password += info.KeyChar;
+                }
+                else if (info.Key == ConsoleKey.Backspace)
+                {
+                    if (!string.IsNullOrEmpty(password))
+                    {
+                        // remove one character from the list of password characters
+                        password = password.Substring(0, password.Length - 1);
+                        // get the location of the cursor
+                        int pos = Console.CursorLeft;
+                        // move the cursor to the left by one character
+                        Console.SetCursorPosition(pos - 1, Console.CursorTop);
+                        // replace it with space
+                        Console.Write(" ");
+                        // move the cursor to the left by one character again
+                        Console.SetCursorPosition(pos - 1, Console.CursorTop);
+                    }
+                }
+                info = Console.ReadKey(true);
+            }
+
+            // add a new line because user pressed enter at the end of their password
+            Console.WriteLine();
+            return password;
         }
 
         /// <summary>
