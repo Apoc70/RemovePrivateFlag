@@ -1,6 +1,6 @@
 ## Note
 
-This is the beta branch. Build can failing or buildes executables con contain errors.
+This is the beta branch. Build can failing or build executables can contain errors.
 
 Use at your own risk.
 
