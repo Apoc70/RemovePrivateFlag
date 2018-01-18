@@ -1,3 +1,9 @@
+## Note
+
+This is the beta branch. Build can failing or buildes executables con contain errors.
+
+Use at your own risk.
+
 ## Synopsis
 
 RemovePrivateFlags.exe will remove the private flags from all messages in an Exchange Server mailbox (appointments will not be altered).
