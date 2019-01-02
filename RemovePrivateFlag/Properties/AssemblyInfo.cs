@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("RemovePrivateFlag")]
@@ -7,7 +6,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("RemovePrivateFlag")]
-[assembly: AssemblyCopyright("Copyright ©  2017 Torsten Schlopsnies, Thomas Stensitzki")]
+[assembly: AssemblyCopyright("Copyright ©  2017-2019 Torsten Schlopsnies, Thomas Stensitzki")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -15,5 +14,5 @@ using System.Runtime.InteropServices;
 
 [assembly: Guid("584d7bb2-14c9-4186-8df8-7c84ec3c2a6e")]
 
-[assembly: AssemblyVersion("1.1.2.0")]
-[assembly: AssemblyFileVersion("1.1.2.0")]
+[assembly: AssemblyVersion("1.1.3.0")]
+[assembly: AssemblyFileVersion("1.1.3.0")]

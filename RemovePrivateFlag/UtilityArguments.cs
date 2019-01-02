@@ -21,7 +21,7 @@ namespace RemovePrivateFlag
             }
         }
 
-        public bool noconfirmation
+        public bool NoConfirmation
         {
             get
             {
@@ -115,13 +115,22 @@ namespace RemovePrivateFlag
             }
         }
 
-        public bool impersonate
+        public bool Impersonate
         {
             get
             {
                 return GetSwitchValue("-impersonate");
             }
         }
+
+        public bool Archive
+        {
+            get
+            {
+                return GetSwitchValue("-archive");
+            }
+        }
+
 
         public UtilityArguments(string[] args) : base(args)
         {

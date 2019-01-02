@@ -8,7 +8,7 @@
 //
 // Find more Exchange community scripts at: http://scripts.granikos.eu
 //
-// Version 1.1.1.0 | Published 2017-03-20
+// Version 1.1.3.0 | Published 2019-01-02
 
 using Microsoft.Exchange.WebServices.Data;
 using System;
@@ -65,12 +65,14 @@ namespace RemovePrivateFlag
                 // Log all arguments if DEBUG is set in xml
                 log.Debug("Parsing arguments");
                 log.Debug("Arguments:");
-                log.Debug(string.Format("mailbox: {0}", arguments.Mailbox));
+                log.Debug(string.Format("Mailbox: {0}", arguments.Mailbox));
                 log.Debug(string.Format("Help: {0}", arguments.Help));
-                log.Debug(string.Format("noconfirmation: {0}", arguments.noconfirmation));
-                log.Debug(string.Format("logonly: {0}", arguments.LogOnly));
-                log.Debug(string.Format("impersonate: {0}", arguments.impersonate));
-                log.Debug(string.Format("allowredirection: {0}", arguments.AllowRedirection));
+                log.Debug(string.Format("NoConfirmation: {0}", arguments.NoConfirmation));
+                log.Debug(string.Format("LogOnly: {0}", arguments.LogOnly));
+                log.Debug(string.Format("Impersonate: {0}", arguments.Impersonate));
+                log.Debug(string.Format("AllowRedirection: {0}", arguments.AllowRedirection));
+                log.Debug(string.Format("Archive: {0}", arguments.Archive));
+
                 if (arguments.Foldername != null)
                 {
                     log.Debug(string.Format("foldername: {0}", arguments.Foldername));
@@ -93,11 +95,11 @@ namespace RemovePrivateFlag
                 log.Debug(string.Format("ignorecertificate: {0}", arguments.IgnoreCertificate));
                 if (arguments.URL != null)
                 {
-                    log.Debug(string.Format("server URL: {0}", arguments.URL));
+                    log.Debug(string.Format("Server URL: {0}", arguments.URL));
                 }
                 else
                 {
-                    log.Debug("server URL: using autodiscover");
+                    log.Debug("Server URL: using autodiscover");
                 }
                 
                 // Check if we need to ignore certificate errors
@@ -108,22 +110,33 @@ namespace RemovePrivateFlag
                     ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
                 }
 
+                WellKnownFolderName RootFolder;
+
+                if (arguments.Archive)
+                {
+                    RootFolder = WellKnownFolderName.ArchiveRoot;
+                }
+                else
+                {
+                    RootFolder = WellKnownFolderName.MsgFolderRoot;
+                }
+
                 // create the service
                 ExchangeService ExService;
                 // connect to the server
                 if (arguments.URL != null)
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.impersonate);
+                    ExService = ConnectToExchange(Mailbox, arguments.URL, arguments.User, arguments.Password, arguments.Impersonate);
                 }
                 else
                 {
-                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.impersonate);
+                    ExService = ConnectToExchange(Mailbox, arguments.AllowRedirection, arguments.User, arguments.Password, arguments.Impersonate);
                 }
 
                 if (log.IsInfoEnabled) log.Info("Service created.");
 
                 // find all folders (under MsgFolderRoot)
-                List<Folder> FolderList = Folders(ExService);
+                List<Folder> FolderList = Folders(ExService, RootFolder);
 
                 // check if we need to remove items from the list because we want to filter it (folderpath)
                 string FolderName = arguments.Foldername;
@@ -188,7 +201,7 @@ namespace RemovePrivateFlag
                                 Console.WriteLine("Found private element. Folder: {0}", GetFolderPath(ExService, FolderList[i].Id));
                                 Console.WriteLine("Subject: {0}", Result.Subject);
                             }
-                            if (!(arguments.noconfirmation))
+                            if (!(arguments.NoConfirmation))
                             {
                                 if (!(arguments.LogOnly))
                                 {
@@ -208,11 +221,11 @@ namespace RemovePrivateFlag
                                 {
                                     if (log.IsInfoEnabled)
                                     {
-                                        log.Info("Changing item without confirmation because -noconfirmation is true.");
+                                        log.Info("Changing item without confirmation because -NoConfirmation is true.");
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Changing item without confirmation because -noconfirmation is true.");
+                                        Console.WriteLine("Changing item without confirmation because -NoConfirmation is true.");
                                     }
                                     ChangeItem(Result);
                                 }
@@ -234,7 +247,7 @@ namespace RemovePrivateFlag
         public static void DisplayHelp()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-noconfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonate]");
+            Console.WriteLine("RemovePrivateFlag.exe -mailbox \"user@example.com\" [-logonly] [-foldername \"Inbox\" [-NoConfirmation] [-ignorecertificate] [-url \"https://server/EWS/Exchange.asmx\"] [-user user@example.com] [-password Pa$$w0rd] [-impersonate]");
         }
 
         /// <summary>
@@ -293,7 +306,7 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxID">The users email address</param>
         /// <returns>Exchange Web Service binding</returns>
-        public static ExchangeService ConnectToExchange(string MailboxID, bool allowredirection, string User, string Password, bool Impersonisation)
+        public static ExchangeService ConnectToExchange(string MailboxID, bool allowredirection, string User, string Password, bool Impersonation)
         {
             log.Info(string.Format("Connect to mailbox {0}", MailboxID));
             try
@@ -317,7 +330,7 @@ namespace RemovePrivateFlag
                 {
                     service.AutodiscoverUrl(MailboxID);
                 }
-                if (Impersonisation)
+                if (Impersonation)
                 {
                     service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
                 }
@@ -337,7 +350,7 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="MailboxID">The users email address</param>
         /// <returns>Exchange Web Service binding</returns>
-        public static ExchangeService ConnectToExchange(string MailboxID,string URL, string User, string Password, bool Impersonisation)
+        public static ExchangeService ConnectToExchange(string MailboxID,string URL, string User, string Password, bool Impersonation)
         {
             log.Info(string.Format("Connect to mailbox {0}", MailboxID));
             try
@@ -353,7 +366,7 @@ namespace RemovePrivateFlag
                     service.Credentials = new WebCredentials(User, Password);
                 }
                 service.Url = new Uri(URL);
-                if (Impersonisation)
+                if (Impersonation)
                 {
                     service.ImpersonatedUserId = new ImpersonatedUserId(ConnectingIdType.SmtpAddress, MailboxID);
                 }
@@ -414,7 +427,7 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="service"></param>
         /// <returns>Result of a folder search operation</returns>
-        public static List<Folder> Folders(ExchangeService service)
+        public static List<Folder> Folders(ExchangeService service, WellKnownFolderName SearchRootFolder)
         {
             // try to find all folder that are unter MsgRootFolder
             int pageSize = 100;
@@ -435,6 +448,7 @@ namespace RemovePrivateFlag
                 try
                 {
                     findFolders = service.FindFolders(WellKnownFolderName.MsgFolderRoot, searchFilter, view);
+                    
                     moreItems = findFolders.MoreAvailable;
 
                     foreach (var folder in findFolders)
