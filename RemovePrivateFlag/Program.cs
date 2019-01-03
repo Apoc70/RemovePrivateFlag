@@ -114,7 +114,7 @@ namespace RemovePrivateFlag
 
                 if (arguments.Archive)
                 {
-                    RootFolder = WellKnownFolderName.ArchiveRoot;
+                    RootFolder = WellKnownFolderName.ArchiveMsgFolderRoot;
                 }
                 else
                 {
