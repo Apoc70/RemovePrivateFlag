@@ -136,7 +136,7 @@ namespace RemovePrivateFlag
                 if (log.IsInfoEnabled) log.Info("Service created.");
 
                 // find all folders (under MsgFolderRoot)
-                List<Folder> FolderList = Folders(ExService, RootFolder);
+                List<Folder> FolderList = Folders(ExService, new FolderId(RootFolder,Mailbox));
 
                 // check if we need to remove items from the list because we want to filter it (folderpath)
                 string FolderName = arguments.Foldername;
@@ -427,7 +427,7 @@ namespace RemovePrivateFlag
         /// </summary>
         /// <param name="service"></param>
         /// <returns>Result of a folder search operation</returns>
-        public static List<Folder> Folders(ExchangeService service, WellKnownFolderName SearchRootFolder)
+        public static List<Folder> Folders(ExchangeService service, FolderId SearchRootFolder)
         {
             // try to find all folder that are unter MsgRootFolder
             int pageSize = 100;
@@ -447,7 +447,7 @@ namespace RemovePrivateFlag
             {
                 try
                 {
-                    findFolders = service.FindFolders(WellKnownFolderName.MsgFolderRoot, searchFilter, view);
+                    findFolders = service.FindFolders(SearchRootFolder, searchFilter, view);
                     
                     moreItems = findFolders.MoreAvailable;
 
